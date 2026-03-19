@@ -8,20 +8,39 @@ interface StatsCardProps {
 }
 
 export function StatsCard({ title, value, previousValue, format }: StatsCardProps) {
-  // BUG: No null check — accessing .toFixed() on undefined will throw
-  // when data hasn't loaded yet (value is undefined before API responds)
+  if (value == null) {
+    return (
+      <div
+        style={{
+          padding: "1.5rem",
+          border: "1px solid #e0e0e0",
+          borderRadius: "8px",
+          backgroundColor: "#fff",
+        }}
+      >
+        <p style={{ margin: 0, fontSize: "0.875rem", color: "#666" }}>{title}</p>
+        <p style={{ margin: "0.5rem 0", fontSize: "2rem", fontWeight: "bold" }}>
+          --
+        </p>
+        <p style={{ margin: 0, fontSize: "0.875rem", color: "#999" }}>
+          Loading...
+        </p>
+      </div>
+    );
+  }
+
   const formattedValue =
     format === "currency"
-      ? `$${value!.toLocaleString()}`
+      ? `$${value.toLocaleString()}`
       : format === "percentage"
-        ? `${value!.toFixed(1)}%`
-        : value!.toLocaleString();
+        ? `${value.toFixed(1)}%`
+        : value.toLocaleString();
 
-  // BUG: Percentage change calculation divides by previousValue, but should
-  // handle the case where previousValue is 0 or undefined.
-  // Also: the formula is wrong — it calculates (current - previous) / current
-  // instead of the correct (current - previous) / previous
-  const percentageChange = ((value! - previousValue!) / value!) * 100;
+  // Fixed: use previousValue as denominator (not value), guard against zero/undefined
+  const percentageChange =
+    previousValue != null && previousValue !== 0
+      ? ((value - previousValue) / previousValue) * 100
+      : 0;
 
   const isPositive = percentageChange >= 0;
 

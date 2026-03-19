@@ -1,9 +1,13 @@
-const API_BASE_URL = process.env.API_BASE_URL;
+// Next.js only exposes NEXT_PUBLIC_ prefixed env vars to the browser.
+// Support both the public and server-only variants for flexibility.
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_BASE_URL ?? process.env.API_BASE_URL;
 
 if (!API_BASE_URL) {
   throw new Error(
     "API_BASE_URL environment variable is not set. " +
-      "Copy .env.example to .env.local and configure it."
+      "Copy .env.example to .env.local and configure it. " +
+      "Use NEXT_PUBLIC_API_BASE_URL for client-side access."
   );
 }
 

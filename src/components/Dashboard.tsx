@@ -19,29 +19,49 @@ interface DashboardData {
 
 export function Dashboard() {
   const [data, setData] = useState<DashboardData | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // BUG: This will throw at module load time if API_BASE_URL is not set,
-    // because api-client.ts throws on import when the env var is missing.
-    // The skill needs to create .env.local or mock the API to get past this.
     const fetchData = async () => {
-      const { apiGet } = await import("@/lib/api-client");
-      const response = await apiGet<DashboardData>("/dashboard/stats");
-      setData(response.data);
+      try {
+        const { apiGet } = await import("@/lib/api-client");
+        const response = await apiGet<DashboardData>("/dashboard/stats");
+        setData(response.data);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to load dashboard data");
+      } finally {
+        setLoading(false);
+      }
     };
 
     fetchData();
   }, []);
 
-  // BUG: No loading state — renders chart immediately with null data
-  // which will cause the chart calculation below to blow up
+  if (loading) {
+    return (
+      <div style={{ padding: "2rem", fontFamily: "system-ui, sans-serif" }}>
+        <h1>Dashboard</h1>
+        <p>Loading dashboard data...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div style={{ padding: "2rem", fontFamily: "system-ui, sans-serif" }}>
+        <h1>Dashboard</h1>
+        <p style={{ color: "#ef4444" }}>Error: {error}</p>
+      </div>
+    );
+  }
 
   const chartData = data?.revenue ?? [];
 
-  // BUG: Division by zero when chartData is empty (no data yet or API returns empty array)
-  const maxValue = Math.max(...chartData);
-  const normalizedData = chartData.map((value) => value / maxValue);
-  // When chartData is empty, Math.max() returns -Infinity, and division produces NaN
+  // Guard against empty arrays: Math.max(...[]) returns -Infinity
+  const maxValue = chartData.length > 0 ? Math.max(...chartData) : 0;
+  const normalizedData =
+    maxValue > 0 ? chartData.map((value) => value / maxValue) : chartData.map(() => 0);
 
   return (
     <div style={{ padding: "2rem", fontFamily: "system-ui, sans-serif" }}>
